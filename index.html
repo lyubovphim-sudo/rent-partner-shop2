@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rent-a-Partner | แฟนเช่า 6 SKUs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #e11d48;
+      --border: #e2e8f0;
+      --ok: #15803d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Prompt', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 16px; position: sticky; top: 0; z-index: 20; }
+    .brand { font-weight: 700; font-size: 1.05rem; color: var(--primary); margin-bottom: 8px; }
+    .nav-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    button { font-family: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border); padding: 8px 12px; font-size: 0.9rem; background: var(--card); color: var(--text); }
+    button.primary { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 500; }
+    .container { max-width: 980px; margin: 0 auto; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+    .card img { width: 100%; height: 240px; object-fit: cover; background: #e2e8f0; }
+    .card-body { padding: 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .sku { font-size: 0.78rem; color: var(--muted); }
+    .name { font-weight: 600; font-size: 1.05rem; }
+    .price { font-weight: 700; color: var(--primary); font-size: 1rem; }
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-top: 16px; }
+    label { display: block; font-size: 0.88rem; margin-top: 10px; font-weight: 500; }
+    input, textarea { width: 100%; font-family: inherit; padding: 9px 11px; border: 1px solid var(--border); border-radius: 10px; margin-top: 4px; font-size: 0.92rem; }
+    .order-item { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 10px; background: #fafafa; }
+    .pick-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; }
+    .pick-row input[type="checkbox"] { width: auto; margin: 0; }
+    .shipping-label { border: 2px dashed #0f172a; border-radius: 12px; padding: 14px; margin-top: 12px; background: #fff; }
+    .badge-ok { color: var(--ok); font-weight: 600; }
+    .hidden { display: none; }
+    @media print {
+      header, .no-print { display: none !important; }
+      body { background: #fff; }
+      .shipping-label { border: 2px solid #000; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">💗 Rent-a-Partner (6 SKUs)</div>
+    <div class="nav-btns">
+      <button onclick="showView('shop')">หน้าร้าน</button>
+      <button onclick="showView('cart')">ตะกร้า (<span id="cart-count">0</span>)</button>
+      <button onclick="showView('wms')">หยิบ-แพ็ค-จ่าหน้า</button>
+      <button onclick="showView('setup')">ตั้งค่า Sheet</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <section id="view-shop">
+      <h2>เลือกโปรไฟล์ที่ถูกใจ</h2>
+      <div id="product-grid" class="grid"></div>
+    </section>
+
+    <section id="view-cart" class="panel hidden">
+      <h2>ตะกร้าสินค้าและข้อมูลจัดส่ง</h2>
+      <div id="cart-list"></div>
+      <p><strong>รวมทั้งหมด: <span id="cart-total">0</span> บาท</strong></p>
+      <form id="checkout-form" onsubmit="submitOrder(event)">
+        <label>ชื่อผู้รับ</label>
+        <input id="cust-name" required placeholder="เช่น คุณมินตรา" />
+        <label>เบอร์โทรศัพท์</label>
+        <input id="cust-phone" required placeholder="08x-xxx-xxxx" />
+        <label>ที่อยู่จัดส่ง</label>
+        <textarea id="cust-address" rows="2" required placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"></textarea>
+        <label>รหัสไปรษณีย์</label>
+        <input id="cust-postcode" required placeholder="10110" />
+        <div style="margin-top:14px;">
+          <button type="submit" class="primary">ยืนยันออเดอร์และบันทึกข้อมูล</button>
+        </div>
+      </form>
+      <p id="order-msg" style="margin-top:10px;"></p>
+    </section>
+
+    <section id="view-wms" class="panel hidden">
+      <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+        <h2 style="margin:0;">หยิบสินค้า แพ็ค และใบจ่าหน้าพัสดุ</h2>
+        <button onclick="syncOrdersFromSheet()">ดึงข้อมูลจาก Google Sheet</button>
+      </div>
+      <div id="orders-container"></div>
+    </section>
+
+    <section id="view-setup" class="panel hidden">
+      <h2>ตั้งค่าลิงก์ Google Apps Script</h2>
+      <label>Apps Script Web App URL</label>
+      <input id="sheet-url-input" placeholder="https://script.google.com/macros/s/.../exec" />
+      <div style="margin-top:12px;">
+        <button class="primary" onclick="saveSheetUrl()">บันทึกลิงก์</button>
+      </div>
+      <p id="setup-msg" style="margin-top:8px;"></p>
+    </section>
+  </div>
+
+  <script>
+    const PRODUCTS = [
+      { sku: 'SKU-01', name: 'ตี้ (เดินห้าง/ทานข้าว)', price: 1290, img: 'images/ty.JPG', note: 'สุภาพ ตรงต่อเวลา ถ่ายรูปสวย' },
+      { sku: 'SKU-02', name: 'อัย (เพื่อนคุยแก้เหงา)', price: 1290, img: 'images/ai.JPG', note: 'ชวนคุยเก่ง สายคาเฟ่ ล้มแชมป์' },
+      { sku: 'SKU-03', name: 'จ๋าย (ออกงานสังคม/อีเวนต์)', price: 1290, img: 'images/jai.JPG', note: 'แต่งตัวสุภาพเรียบร้อย ขอมันส์ ๆ เลยนะ ขอมันส์ ๆ' },
+      { sku: 'SKU-04', name: 'อันดา (สายลุย/ท่องเที่ยว)', price: 1290, img: 'images/anda.JPG', note: ใหญ่ เบิ้ม ฝอ พร้อมเดินทาง' },
+      { sku: 'SKU-05', name: 'แบม (สายละมุน/อบอุ่น)', price: 1290, img: 'images/bam.JPG', note: 'รับฟังเก่ง บรรยากาศผ่อนคลาย ฟิตแต่จริงใจ' },
+      { sku: 'SKU-06', name: 'อิม (VIP แพ็กเกจพิเศษ)', price: 1590, img: 'images/im.JPG', note: 'สิงห์พ่นควัน หลีดตัวแม่ 15+1' }
+    ];
+
+    const STORAGE_ORDERS_KEY = 'partner_orders_v1';
+    const STORAGE_URL_KEY = 'partner_sheet_url_v1';
+    let cart = [];
+
+    function getSheetUrl() { return localStorage.getItem(STORAGE_URL_KEY) || ''; }
+    function saveSheetUrl() {
+      localStorage.setItem(STORAGE_URL_KEY, document.getElementById('sheet-url-input').value.trim());
+      document.getElementById('setup-msg').innerHTML = '<span class="badge-ok">บันทึกลิงก์เรียบร้อยแล้ว</span>';
+    }
+    function getOrders() { return JSON.parse(localStorage.getItem(STORAGE_ORDERS_KEY) || '[]'); }
+    function setOrders(orders) { localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(orders)); }
+
+    function showView(name) {
+      ['shop', 'cart', 'wms', 'setup'].forEach(v => {
+        document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
+      });
+      if (name === 'cart') renderCart();
+      if (name === 'wms') renderWMS();
+      if (name === 'setup') document.getElementById('sheet-url-input').value = getSheetUrl();
+    }
+
+    function renderShop() {
+      const grid = document.getElementById('product-grid');
+      grid.innerHTML = PRODUCTS.map((p, idx) => `
+        <div class="card">
+          <img src="${p.img}" alt="${p.name}" onerror="this.alt='ไม่พบรูป ${p.img}'" />
+          <div class="card-body">
+            <div class="sku">${p.sku} · ไฟล์: ${p.img}</div>
+            <div class="name">${p.name}</div>
+            <div style="font-size:0.86rem; color:var(--muted);">${p.note}</div>
+            <div class="price">${p.price.toLocaleString()} บาท</div>
+            <button class="primary" onclick="addToCart(${idx})">หยิบลงตะกร้า</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addToCart(idx) {
+      const item = PRODUCTS[idx];
+      const found = cart.find(c => c.sku === item.sku);
+      if (found) found.qty += 1;
+      else cart.push({ ...item, qty: 1 });
+      document.getElementById('cart-count').textContent = cart.reduce((s, c) => s + c.qty, 0);
+      alert('เพิ่ม ' + item.name + ' ลงตะกร้าแล้ว');
+    }
+
+    function renderCart() {
+      const list = document.getElementById('cart-list');
+      if (!cart.length) {
+        list.innerHTML = '<p style="color:var(--muted);">ยังไม่มีสินค้าในตะกร้า</p>';
+        document.getElementById('cart-total').textContent = '0';
+        return;
+      }
+      list.innerHTML = cart.map((c, i) => `
+        <div class="pick-row">
+          <span style="flex:1;"><strong>${c.sku}</strong> - ${c.name} x ${c.qty}</span>
+          <span>${(c.price * c.qty).toLocaleString()} บ.</span>
+          <button onclick="removeCartItem(${i})">ลบ</button>
+        </div>
+      `).join('');
+      document.getElementById('cart-total').textContent = cart.reduce((s, c) => s + c.price * c.qty, 0).toLocaleString();
+    }
+
+    function removeCartItem(i) {
+      cart.splice(i, 1);
+      document.getElementById('cart-count').textContent = cart.reduce((s, c) => s + c.qty, 0);
+      renderCart();
+    }
+
+    async function submitOrder(e) {
+      e.preventDefault();
+      if (!cart.length) return alert('กรุณาเลือกสินค้าอย่างน้อย 1 รายการก่อนครับ');
+      const order = {
+        orderId: 'ORD-' + Date.now(),
+        timestamp: new Date().toLocaleString('th-TH'),
+        customerName: document.getElementById('cust-name').value.trim(),
+        phone: document.getElementById('cust-phone').value.trim(),
+        address: document.getElementById('cust-address').value.trim(),
+        postcode: document.getElementById('cust-postcode').value.trim(),
+        items: cart.map(c => ({ sku: c.sku, name: c.name, qty: c.qty
